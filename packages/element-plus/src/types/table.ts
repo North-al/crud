@@ -17,6 +17,39 @@ export interface CrudTableColumn extends Partial<TableColumnCtx<any>> {
     }
 }
 
+export interface CrudTableToolbar {
+    // 工具栏配置
+    show?: boolean
+    title?: string
+    // 左侧内容
+    left?: {
+        title?: string | VNode
+        actions?: CrudTableAction[]
+    }
+    // 右侧内容  
+    right?: {
+        actions?: CrudTableAction[]
+        settings?: {
+            columns?: boolean // 列设置
+            density?: boolean // 密度设置
+            fullscreen?: boolean // 全屏
+            refresh?: boolean // 刷新
+        }
+    }
+}
+
+export interface CrudTableAction {
+    key?: string
+    label?: string
+    icon?: string | Component
+    type?: 'primary' | 'success' | 'warning' | 'danger' | 'info'
+    size?: 'large' | 'default' | 'small'
+    disabled?: boolean | ((selection: any[]) => boolean)
+    visible?: boolean | ((selection: any[]) => boolean)
+    onClick?: (selection: any[]) => void
+    render?: (selection: any[]) => VNode | string
+}
+
 // 精确的事件定义
 export interface CrudTableEmits<T extends any = any> {
     // v-model 事件
@@ -38,3 +71,4 @@ export interface CrudTableEmits<T extends any = any> {
     'sort-change': [{ prop: string; order: 'asc' | 'desc' | null }]
     'filter-change': [{ [key: string]: any[] }]
 }
+

@@ -240,26 +240,30 @@
             width: 50,
             fixed: 'left',
             render: (row: any) => (
-                    <div style='padding: 20px; background: #f8f9fa'>
-                        <h4 style='margin: 0 0 12px 0; color: #333'>{row.name} 的详细信息</h4>
-                        <div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px'>
-                            <div>
-                                <p><strong>技能:</strong></p>
-                                <div style='display: flex; gap: 8px; flex-wrap: wrap'>
-                                    {row.skills.map((skill: string) => (
-                                        <ElTag key={skill} size='small'>
-                                            {skill}
-                                        </ElTag>
-                                    ))}
-                                </div>
-                            </div>
-                            <div>
-                                <p><strong>描述:</strong></p>
-                                <p style='color: #666; line-height: 1.5'>{row.description}</p>
+                <div style='padding: 20px; background: #f8f9fa'>
+                    <h4 style='margin: 0 0 12px 0; color: #333'>{row.name} 的详细信息</h4>
+                    <div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px'>
+                        <div>
+                            <p>
+                                <strong>技能:</strong>
+                            </p>
+                            <div style='display: flex; gap: 8px; flex-wrap: wrap'>
+                                {row.skills.map((skill: string) => (
+                                    <ElTag key={skill} size='small'>
+                                        {skill}
+                                    </ElTag>
+                                ))}
                             </div>
                         </div>
+                        <div>
+                            <p>
+                                <strong>描述:</strong>
+                            </p>
+                            <p style='color: #666; line-height: 1.5'>{row.description}</p>
+                        </div>
                     </div>
-                )
+                </div>
+            )
         },
         {
             type: 'index',
@@ -328,7 +332,7 @@
         { type: 'selection' },
         { prop: 'name', label: '名称', width: 200 },
         { prop: 'role', label: '角色/职位', width: 150 },
-        { prop: 'email', label: '邮箱', },
+        { prop: 'email', label: '邮箱' },
         {
             prop: 'status',
             label: '状态',
@@ -519,6 +523,59 @@
         treeTableRef.value?.clearFilter()
         ElMessage.success('已清除所有过滤器')
     }
+
+    const handleAddUser = () => {
+        ElMessage.success('新增用户')
+    }
+
+    const handleExport = (selection: User[]) => {
+        ElMessage.success(`导出 ${selection.length > 0 ? selection.length + ' 条选中' : '全部'} 数据`)
+    }
+
+    const handleBatchDelete = async (selection: User[]) => {
+        try {
+            await ElMessageBox.confirm(`确定要删除选中的 ${selection.length} 条数据吗？`, '批量删除', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            })
+
+            selection.forEach(row => {
+                const index = tableData.value.findIndex(item => item.id === row.id)
+                if (index > -1) {
+                    tableData.value.splice(index, 1)
+                }
+            })
+
+            ElMessage.success(`成功删除 ${selection.length} 条数据`)
+        } catch {
+            ElMessage.info('已取消删除')
+        }
+    }
+
+    const toolsColumns: CrudTableColumn[] = [
+        { type: 'selection' },
+        { prop: 'name', label: '姓名', width: 120 },
+        { prop: 'age', label: '年龄', width: 80 },
+        { prop: 'email', label: '邮箱' },
+        {
+            prop: 'status',
+            label: '状态',
+            width: 100,
+            render: row => (
+                <ElTag type={row.status === 'active' ? 'success' : 'danger'}>
+                    {row.status === 'active' ? '激活' : '禁用'}
+                </ElTag>
+            )
+        },
+        { prop: 'department', label: '部门', width: 120 },
+        {
+            prop: 'salary',
+            label: '薪资',
+            width: 120,
+            render: row => `¥${row.salary.toLocaleString()}`
+        }
+    ]
 </script>
 
 <template>
@@ -607,6 +664,57 @@
                 @selection-change="handleSelectionChange"
                 @sort-change="handleSortChange"
                 @filter-change="handleFilterChange" />
+        </div>
+
+        <!-- 带工具栏的表格 -->
+        <div style="margin-bottom: 32px">
+            <h2>带工具栏的表格</h2>
+            <CrudTable
+                :data="tableData"
+                :columns="toolsColumns"
+                :toolbar="{
+                    show: true,
+                    left: {
+                        title: '用户管理',
+                        actions: [
+                            { 
+                                key: 'add', 
+                                label: '新增用户', 
+                                type: 'primary', 
+                                // icon: 'Plus',
+                                onClick: handleAddUser 
+                            },
+                            { 
+                                key: 'export', 
+                                label: '导出', 
+                                type: 'success',
+                                // icon: 'Download',
+                                onClick: handleExport 
+                            },
+                            { 
+                                key: 'delete', 
+                                label: '批量删除', 
+                                type: 'danger',
+                                // icon: 'Delete',
+                                disabled: (selection: any) => selection.length === 0,
+                                onClick: handleBatchDelete 
+                            }
+                        ]
+                    },
+                    right: {
+                        settings: { 
+                            columns: true, 
+                            refresh: true,
+                            fullscreen: true 
+                        }
+                    }
+                }"
+                @selection-change="handleSelectionChange">
+                <template #toolbar-left="{ selection }">
+                    <div style="margin-left: 16px; color: #666; font-size: 14px">已选择 {{ selection.length }} 项</div>
+                </template>
+
+            </CrudTable>
         </div>
 
         <!-- 调试信息 -->

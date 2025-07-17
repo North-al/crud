@@ -1,8 +1,8 @@
 import { computed, defineComponent, ref } from 'vue'
-import { ElPagination, ElTable, ElTableColumn } from 'element-plus'
+import { ElPagination, ElTable, ElTableColumn, ElButton, ElIcon } from 'element-plus'
 import type { PropType } from 'vue'
 import type { PaginationProps } from 'element-plus'
-import type { CrudTableColumn } from '../types/table'
+import type { CrudTableColumn, CrudTableToolbar, CrudTableAction } from '../types/table'
 import '../styles/table.scss'
 
 export default defineComponent({
@@ -39,6 +39,10 @@ export default defineComponent({
         pagination: {
             type: Object as PropType<Partial<PaginationProps>>,
             default: () => ({})
+        },
+        toolbar: {
+            type: Object as PropType<CrudTableToolbar>,
+            default: () => ({})
         }
     },
     emits: {
@@ -48,11 +52,12 @@ export default defineComponent({
         'current-change': (currentRow: any, oldCurrentRow: any) => true,
         'row-click': (row: any, column: any, event: Event) => true,
         'row-dblclick': (row: any, column: any, event: Event) => true,
-        'sort-change': (sortInfo: { prop: string; order: string | null }) => true,
+        'sort-change': (sortInfo: { column: any, prop: string; order: string | null }) => true,
         'filter-change': (filters: Record<string, any[]>) => true
     },
     setup(props, { emit, slots, attrs, expose }) {
         const tableRef = ref()
+        const selectedRows = ref<any[]>([])
 
         // 监听 props 变化
         const internalPage = computed({
@@ -94,6 +99,7 @@ export default defineComponent({
 
         // 表格事件处理
         const handleSelectionChange = (selection: any[]) => {
+            selectedRows.value = selection
             emit('selection-change', selection)
         }
 
@@ -109,20 +115,12 @@ export default defineComponent({
             emit('row-dblclick', row, column, event)
         }
 
-        const handleSortChange = ({ prop, order }: { prop: string; order: string | null }) => {
-            emit('sort-change', { prop, order })
-        }
-
-        const handleFilterChange = (filters: Record<string, any[]>) => {
-            emit('filter-change', filters)
-        }
-
         // 提取列属性
         const extractColumnProps = (col: CrudTableColumn) => {
             const { visible, render, slots, ...rest } = col
             return rest
         }
-
+        
         // 渲染列内容 插槽 > render > slots.default
         const renderColumnContent = (col: CrudTableColumn) => {
             return ({ row, column, $index }: any) => {
@@ -210,8 +208,88 @@ export default defineComponent({
             doLayout
         })
 
+        // 工具栏渲染
+        const renderToolbar = () => {
+            if (!props.toolbar.show) return null
+            
+            return (
+                <div class="north-crud-toolbar">
+                    <div class="toolbar-left">
+                        {/* 标题 */}
+                        {props.toolbar.left?.title && (
+                            <div class="toolbar-title">
+                                {typeof props.toolbar.left.title === 'string' 
+                                    ? props.toolbar.left.title 
+                                    : props.toolbar.left.title
+                                }
+                            </div>
+                        )}
+                        
+                        {/* 左侧操作 */}
+                        {props.toolbar.left?.actions?.map(action => renderAction(action))}
+                        
+                        {/* 工具栏左侧插槽 */}
+                        {slots['toolbar-left']?.({ selection: selectedRows.value })}
+                    </div>
+                    
+                    <div class="toolbar-right">
+                        {/* 工具栏右侧插槽 */}
+                        {slots['toolbar-right']?.({ selection: selectedRows.value })}
+                        
+                        {/* 右侧操作 */}
+                        {props.toolbar.right?.actions?.map(action => renderAction(action))}
+                        
+                        {/* 内置设置 */}
+                        {renderSettings()}
+                    </div>
+                </div>
+            )
+        }
+        
+        // 渲染操作按钮
+        const renderAction = (action: CrudTableAction) => {
+            if (typeof action.visible === 'function' && !action.visible(selectedRows.value)) return null
+            if (typeof action.visible === 'boolean' && !action.visible) return null
+            
+            if (action.render) {
+                return action.render(selectedRows.value)
+            }
+            
+            const disabled = typeof action.disabled === 'function' 
+                ? action.disabled(selectedRows.value)
+                : action.disabled
+                
+            return (
+                <ElButton
+                    key={action.key}
+                    type={action.type}
+                    size={action.size}
+                    disabled={disabled}
+                    onClick={() => action.onClick?.(selectedRows.value)}
+                >
+                    {action.icon && <ElIcon>{action.icon}</ElIcon>}
+                    {action.label}
+                </ElButton>
+            )
+        }
+        
+        // 渲染设置
+        const renderSettings = () => {
+            const settings = props.toolbar.right?.settings
+            if (!settings) return null
+            
+            return (
+                <div class="toolbar-settings">
+                    {/*TODO: 刷新、全屏、列设置等 */}
+                </div>
+            )
+        }
+
         return () => (
             <div class='north-crud-table'>
+                {/* 工具栏 */}
+                {renderToolbar()}
+                
                 {/* 表格主体 */}
                 <ElTable
                     ref={tableRef}
@@ -229,8 +307,8 @@ export default defineComponent({
                     onCurrent-change={handleCurrentChange}
                     onRow-click={handleRowClick}
                     onRow-dblclick={handleRowDblclick}
-                    onSort-change={handleSortChange}
-                    onFilter-change={handleFilterChange}
+                    onSort-change={({ column ,prop, order }: { column: any; prop: string; order: string | null }) => emit('sort-change', { column, prop, order })}
+                    onFilter-change={(filters: Record<string, any[]>) => emit('filter-change', filters)}
                     {...tableAttrs.value}
                     v-slots={{ ...tableSlots.value }}></ElTable>
 
@@ -241,8 +319,6 @@ export default defineComponent({
                             v-model:current-page={internalPage.value}
                             v-model:page-size={internalPageSize.value}
                             total={props.total}
-                            // onCurrent-change={handlePageChange}
-                            // onSize-change={handlePageSizeChange}
                             {...paginationConfig.value}
                         />
                     </div>
@@ -251,3 +327,4 @@ export default defineComponent({
         )
     }
 })
+
