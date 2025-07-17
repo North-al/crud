@@ -269,7 +269,7 @@
         },
         { prop: 'name', label: '姓名', width: 120, sortable: true, fixed: 'left' },
         { prop: 'age', label: '年龄', width: 80, sortable: true },
-        { prop: 'email', label: '邮箱', width: 250, showOverflowTooltip: true },
+        { prop: 'email', label: '邮箱', showOverflowTooltip: true },
         {
             prop: 'status',
             label: '状态',
@@ -328,7 +328,7 @@
         { type: 'selection' },
         { prop: 'name', label: '名称', width: 200 },
         { prop: 'role', label: '角色/职位', width: 150 },
-        { prop: 'email', label: '邮箱', width: 200 },
+        { prop: 'email', label: '邮箱', },
         {
             prop: 'status',
             label: '状态',
