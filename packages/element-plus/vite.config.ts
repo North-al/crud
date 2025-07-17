@@ -10,14 +10,16 @@ export default defineConfig({
         vueJsx(),
         dts({
             insertTypesEntry: true,
-            copyDtsFiles: false
+            copyDtsFiles: false,
+            outDir: 'dist',
+            include: ['src/**/*']
         })
     ],
     build: {
         lib: {
             entry: resolve(__dirname, 'src/index.ts'),
             name: 'NorthalCrudElementPlus',
-            fileName: 'index'
+            fileName: format => `index.${format}.js`
         },
         rollupOptions: {
             external: ['vue', 'element-plus'],
@@ -25,6 +27,12 @@ export default defineConfig({
                 globals: {
                     vue: 'Vue',
                     'element-plus': 'ElementPlus'
+                },
+                assetFileNames: chunkInfo => {
+                    if (chunkInfo.name?.endsWith('.css')) {
+                        return 'index.css'
+                    }
+                    return '[name][extname]'
                 }
             }
         }

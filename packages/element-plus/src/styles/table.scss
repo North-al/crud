@@ -1,0 +1,19 @@
+.north-crud-table .crud-header-row {
+    background-color: #f2f3f5;
+}
+
+.north-crud-table .crud-header-row th.crud-header-cell {
+    color: #606266;
+    background-color: #f2f3f5;
+}
+
+.north-crud-table .el-table.is-scrolling-none th.el-table-fixed-column--left,
+.north-crud-table .el-table.is-scrolling-none th.el-table-fixed-column--right {
+    background-color: #f2f3f5;
+}
+
+.north-crud-pagination {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+}
