@@ -1,0 +1,24 @@
+{
+    "extends": "@vue/tsconfig/tsconfig.dom.json",
+    "compilerOptions": {
+        "lib": ["ES2020", "DOM", "DOM.Iterable"],
+        "noEmit": true,
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "resolveJsonModule": true,
+        "allowImportingTsExtensions": true,
+        "moduleDetection": "force",
+        "jsx": "preserve",
+        "jsxImportSource": "vue",
+        "noImplicitThis": true,
+        "strict": true,
+        "verbatimModuleSyntax": true,
+        "target": "ESNext",
+        "useDefineForClassFields": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        // See <https://github.com/vuejs/vue-cli/pull/5688>
+        "skipLibCheck": true
+    },
+    "include": ["packages/*/src/**/*", "packages/*/types/**/*"]
+}
