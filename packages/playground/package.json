@@ -9,8 +9,10 @@
         "preview": "vite preview"
     },
     "dependencies": {
+        "@element-plus/icons-vue": "^2.3.1",
         "@northal/crud-element-plus": "workspace:*",
         "element-plus": "^2.10.4",
+        "highlight.js": "^11.11.1",
         "vue": "^3.5.17"
     },
     "devDependencies": {

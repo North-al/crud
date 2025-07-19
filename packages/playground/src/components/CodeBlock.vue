@@ -1,219 +1,264 @@
 <template>
-  <div class="code-block-container">
-    <div class="code-header">
-      <div class="code-tabs">
-        <button 
-          v-for="(file, key) in files" 
-          :key="key"
-          :class="['tab-button', { active: activeTab === key }]"
-          @click="activeTab = key">
-          {{ file.name }}
-        </button>
-      </div>
-      <div class="code-actions">
-        <button class="copy-button" @click="copyCode" :title="copied ? '已复制' : '复制代码'">
-          <span v-if="copied">✓</span>
-          <span v-else>📋</span>
-        </button>
+  <div class="code-block">
+    <!-- 文件标签切换 -->
+    <div class="code-tabs" v-if="fileNames.length > 1">
+      <div 
+        v-for="fileName in fileNames" 
+        :key="fileName" 
+        class="code-tab" 
+        :class="{ 'active': currentFile === fileName }"
+        @click="currentFile = fileName"
+      >
+        {{ fileName }}
       </div>
     </div>
+    
+    <!-- 代码展示区域 -->
     <div class="code-content">
-      <pre><code :class="`language-${files[activeTab].lang}`" v-html="highlightedCode"></code></pre>
+      <div class="code-header">
+        <span class="file-name">{{ currentFile }}</span>
+        <button class="copy-button" @click="copyCode">
+          <span v-if="!copied">复制代码</span>
+          <span v-else>复制成功 ✓</span>
+        </button>
+      </div>
+      <pre class="code-pre"><code class="code" v-html="highlightedCode"></code></pre>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
+<script setup>
+import { ref, computed, watch, onMounted } from 'vue'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github.css'
 
-interface CodeFile {
-  name: string
-  lang: string
-  code: string
-}
-
-interface Props {
-  files: Record<string, CodeFile>
-  defaultTab?: string
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  defaultTab: ''
+const props = defineProps({
+  files: {
+    type: Object,
+    required: true,
+    default: () => ({})
+  }
 })
 
-const activeTab = ref(props.defaultTab || Object.keys(props.files)[0])
+// 文件名列表
+const fileNames = computed(() => Object.keys(props.files))
+
+// 当前选中的文件
+const currentFile = ref(fileNames.value[0] || '')
+
+// 复制状态
 const copied = ref(false)
 
+// 高亮处理的代码
 const highlightedCode = computed(() => {
-  const file = props.files[activeTab.value]
-  if (!file) return ''
+  if (!currentFile.value || !props.files[currentFile.value]) {
+    return ''
+  }
   
-  // 简单的语法高亮
-  return highlightCode(file.code, file.lang)
+  const code = props.files[currentFile.value]
+  const language = getLanguageFromFileName(currentFile.value)
+  
+  try {
+    if (language && hljs.getLanguage(language)) {
+      return hljs.highlight(code, { language }).value
+    }
+    return hljs.highlightAuto(code).value
+  } catch (error) {
+    console.error('代码高亮失败:', error)
+    return code
+  }
 })
 
-const copyCode = async () => {
+// 根据文件名获取语言
+function getLanguageFromFileName(fileName) {
+  const ext = fileName.split('.').pop().toLowerCase()
+  
+  const languageMap = {
+    vue: 'html',
+    js: 'javascript',
+    ts: 'typescript',
+    jsx: 'jsx',
+    tsx: 'tsx',
+    css: 'css',
+    scss: 'scss',
+    less: 'less',
+    md: 'markdown',
+    json: 'json',
+    html: 'html',
+    xml: 'xml',
+  }
+  
+  return languageMap[ext] || ''
+}
+
+// 复制代码
+async function copyCode() {
+  if (!navigator.clipboard) {
+    fallbackCopyToClipboard(props.files[currentFile.value])
+    return
+  }
+
   try {
-    const file = props.files[activeTab.value]
-    await navigator.clipboard.writeText(file.code)
+    await navigator.clipboard.writeText(props.files[currentFile.value])
     copied.value = true
-    ElMessage.success('代码已复制到剪贴板')
     setTimeout(() => {
       copied.value = false
     }, 2000)
-  } catch (err) {
-    ElMessage.error('复制失败')
+  } catch (error) {
+    console.error('复制失败:', error)
+    fallbackCopyToClipboard(props.files[currentFile.value])
   }
 }
 
-// 简单的语法高亮函数
-function highlightCode(code: string, lang: string): string {
-  // 这里可以集成 Prism.js 或其他语法高亮库
-  // 现在先做简单的关键字高亮
-  let highlighted = code
+// 兼容性处理：创建一个临时textarea来复制内容
+function fallbackCopyToClipboard(text) {
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  textArea.style.position = 'fixed'
+  textArea.style.top = '0'
+  textArea.style.left = '0'
+  textArea.style.width = '2em'
+  textArea.style.height = '2em'
+  textArea.style.padding = '0'
+  textArea.style.border = 'none'
+  textArea.style.outline = 'none'
+  textArea.style.boxShadow = 'none'
+  textArea.style.background = 'transparent'
+  document.body.appendChild(textArea)
+  textArea.focus()
+  textArea.select()
   
-  if (lang === 'vue' || lang === 'html') {
-    highlighted = highlighted
-      .replace(/(&lt;\/?)([a-zA-Z-]+)/g, '$1<span class="tag">$2</span>')
-      .replace(/(v-[a-zA-Z-]+|@[a-zA-Z-]+|:[a-zA-Z-]+)/g, '<span class="directive">$1</span>')
-      .replace(/(".*?")/g, '<span class="string">$1</span>')
+  try {
+    const successful = document.execCommand('copy')
+    if (successful) {
+      copied.value = true
+      setTimeout(() => {
+        copied.value = false
+      }, 2000)
+    }
+  } catch (err) {
+    console.error('复制失败:', err)
   }
   
-  if (lang === 'javascript' || lang === 'typescript') {
-    highlighted = highlighted
-      .replace(/\b(const|let|var|function|return|import|export|from|default|if|else|for|while|class|interface|type)\b/g, '<span class="keyword">$1</span>')
-      .replace(/('.*?'|".*?"|`.*?`)/g, '<span class="string">$1</span>')
-      .replace(/(\/\/.*$)/gm, '<span class="comment">$1</span>')
-  }
-  
-  return highlighted
+  document.body.removeChild(textArea)
 }
+
+// 文件列表为空时的处理
+watch(fileNames, (newNames) => {
+  if (newNames.length > 0 && !currentFile.value) {
+    currentFile.value = newNames[0]
+  }
+})
+
+// 组件挂载后初始化当前文件
+onMounted(() => {
+  if (fileNames.value.length > 0) {
+    currentFile.value = fileNames.value[0]
+  }
+})
 </script>
 
 <style scoped>
-.code-block-container {
-  border: 1px solid #e4e7ed;
-  border-radius: 6px;
-  overflow: hidden;
-  background: #fff;
+.code-block {
   margin: 16px 0;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  overflow: hidden;
+}
+
+.code-tabs {
+  display: flex;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f1f1f1;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.code-tab {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  font-size: 14px;
+  user-select: none;
+}
+
+.code-tab.active {
+  background-color: #fff;
+  border-bottom: 2px solid #409eff;
+  font-weight: 500;
+}
+
+.code-tab:hover:not(.active) {
+  background-color: #e8e8e8;
+}
+
+.code-content {
+  position: relative;
+  background-color: #fafafa;
 }
 
 .code-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e4e7ed;
-  padding: 0;
-}
-
-.code-tabs {
-  display: flex;
-}
-
-.tab-button {
-  padding: 12px 16px;
-  border: none;
-  background: transparent;
-  color: #666;
-  cursor: pointer;
+  padding: 8px 16px;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
   font-size: 14px;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s;
 }
 
-.tab-button:hover {
-  color: #409eff;
-  background: rgba(64, 158, 255, 0.1);
-}
-
-.tab-button.active {
-  color: #409eff;
-  border-bottom-color: #409eff;
-  background: #fff;
-}
-
-.code-actions {
-  padding: 8px 12px;
+.file-name {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  color: #666;
 }
 
 .copy-button {
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  background: #fff;
+  background-color: #f5f5f5;
+  border: 1px solid #d9d9d9;
   border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .copy-button:hover {
-  border-color: #409eff;
-  color: #409eff;
+  background-color: #e6f7ff;
+  border-color: #1890ff;
+  color: #1890ff;
 }
 
-.code-content {
-  background: #fafafa;
-  overflow-x: auto;
-}
-
-.code-content pre {
+.code-pre {
   margin: 0;
-  padding: 20px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+  padding: 16px;
+  overflow-x: auto;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
   font-size: 14px;
-  line-height: 1.6;
-  color: #2c3e50;
+  line-height: 1.5;
 }
 
-.code-content code {
-  background: none;
-  padding: 0;
-  font-size: inherit;
-  color: inherit;
+.code {
+  white-space: pre;
+  color: #333;
 }
 
-/* 语法高亮样式 */
-:deep(.keyword) {
-  color: #d73a49;
-  font-weight: 600;
+/* 让代码块内的滚动条更美观 */
+.code-pre::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-:deep(.string) {
-  color: #032f62;
+.code-pre::-webkit-scrollbar-track {
+  background-color: #f5f5f5;
 }
 
-:deep(.comment) {
-  color: #6a737d;
-  font-style: italic;
+.code-pre::-webkit-scrollbar-thumb {
+  background-color: #ddd;
+  border-radius: 3px;
 }
 
-:deep(.tag) {
-  color: #22863a;
-  font-weight: 600;
-}
-
-:deep(.directive) {
-  color: #6f42c1;
-  font-weight: 600;
-}
-
-/* 响应式 */
-@media (max-width: 768px) {
-  .code-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .code-tabs {
-    overflow-x: auto;
-  }
-  
-  .tab-button {
-    white-space: nowrap;
-    min-width: 80px;
-  }
+.code-pre::-webkit-scrollbar-thumb:hover {
+  background-color: #ccc;
 }
 </style>
