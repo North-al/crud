@@ -4,6 +4,7 @@ import type { PropType } from 'vue'
 import type { PaginationProps } from 'element-plus'
 import type { CrudTableColumn, CrudTableToolbar, CrudTableAction } from '../types/table'
 import '../styles/table.scss'
+import { isEmpty } from '../utils/isEmpty'
 
 export default defineComponent({
     name: 'CrudTable',
@@ -313,7 +314,7 @@ export default defineComponent({
                     v-slots={{ ...tableSlots.value }}></ElTable>
 
                 {/* 分页器 */}
-                {paginationConfig.value && (
+                {props.hasPagination && (
                     <div class='north-crud-pagination'>
                         <ElPagination
                             v-model:current-page={internalPage.value}
