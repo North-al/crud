@@ -1,0 +1,26 @@
+.crud-form-footer {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 16px;
+  
+  .el-button + .el-button {
+    margin-left: 12px;
+  }
+}
+
+// 响应式调整
+@media (max-width: 768px) {
+  .crud-form-footer {
+    flex-direction: column;
+    width: 100%;
+    
+    .el-button {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    
+    .el-button + .el-button {
+      margin-left: 0;
+    }
+  }
+}

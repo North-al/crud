@@ -4,7 +4,6 @@ import type { PropType } from 'vue'
 import type { PaginationProps } from 'element-plus'
 import type { CrudTableColumn, CrudTableToolbar, CrudTableAction } from '../types/table'
 import '../styles/table.scss'
-import { isEmpty } from '../utils/isEmpty'
 
 export default defineComponent({
     name: 'CrudTable',
